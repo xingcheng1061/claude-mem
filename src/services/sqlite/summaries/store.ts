@@ -1,9 +1,9 @@
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { SummaryInput, StoreSummaryResult } from './types.js';
 
 export function storeSummary(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string,
   project: string,
   summary: SummaryInput,

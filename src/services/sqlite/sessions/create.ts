@@ -1,5 +1,5 @@
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import { DEFAULT_PLATFORM_SOURCE, normalizePlatformSource } from '../../../shared/platform-source.js';
 
@@ -14,7 +14,7 @@ function resolveCreateSessionArgs(
 }
 
 export function createSDKSession(
-  db: Database,
+  db: SqlExecutor,
   contentSessionId: string,
   project: string,
   userPrompt: string,
@@ -76,7 +76,7 @@ export function createSDKSession(
 }
 
 export function updateMemorySessionId(
-  db: Database,
+  db: SqlExecutor,
   sessionDbId: number,
   memorySessionId: string | null
 ): void {

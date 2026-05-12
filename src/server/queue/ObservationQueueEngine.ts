@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { EventEmitter } from 'events';
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { SessionQueueProcessor, type CreateIteratorOptions } from '../../services/queue/SessionQueueProcessor.js';
 import { PendingMessageStore } from '../../services/sqlite/PendingMessageStore.js';
 import type { PendingMessage, PendingMessageWithId } from '../../services/worker-types.js';
@@ -61,7 +61,7 @@ export class SqliteObservationQueueEngine implements InspectableObservationQueue
   private readonly store: PendingMessageStore;
   private readonly eventsBySession = new Map<number, EventEmitter>();
 
-  constructor(db: Database, onMutate?: () => void) {
+  constructor(db: SqlExecutor, onMutate?: () => void) {
     this.store = new PendingMessageStore(db, onMutate);
   }
 

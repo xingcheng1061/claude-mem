@@ -1,4 +1,4 @@
-import { Database, type SQLQueryBindings } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
 import { DATA_DIR, DB_PATH, ensureDir, OBSERVER_SESSIONS_PROJECT } from '../../shared/paths.js';
 import { logger } from '../../utils/logger.js';
 import {
@@ -29,23 +29,18 @@ function resolveCreateSessionArgs(
 }
 
 export class SessionStore {
-  public db: Database;
+  public db: SqlExecutor;
 
-  constructor(dbPathOrDb: string | Database = DB_PATH) {
-    if (dbPathOrDb instanceof Database) {
-      this.db = dbPathOrDb;
-    } else {
-      if (dbPathOrDb !== ':memory:') {
-        ensureDir(DATA_DIR);
-      }
-      this.db = new Database(dbPathOrDb);
+  /**
+   * @param sqlExec A SqlExecutor instance (obtained via getSqlExecutor()).
+   *   Schema creation and migrations are handled by the DAL before construction.
+   */
+  constructor(sqlExec: SqlExecutor) {
+    this.db = sqlExec;
 
-      this.db.run('PRAGMA journal_mode = WAL');
-      this.db.run('PRAGMA synchronous = NORMAL');
-      this.db.run('PRAGMA foreign_keys = ON');
-      this.db.run('PRAGMA journal_size_limit = 4194304'); 
-    }
-
+    // Note: PRAGMAs and initial schema are now managed by the DAL adapter.
+    // This method only handles incremental column-level migrations that
+    // haven't been moved to the migration system yet.
     this.initializeSchema();
 
     this.ensureWorkerPortColumn();

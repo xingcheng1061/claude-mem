@@ -1,5 +1,5 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 
 export interface ImportResult {
@@ -8,7 +8,7 @@ export interface ImportResult {
 }
 
 export function importSdkSession(
-  db: Database,
+  db: SqlExecutor,
   session: {
     content_session_id: string;
     memory_session_id: string;
@@ -52,7 +52,7 @@ export function importSdkSession(
 }
 
 export function importSessionSummary(
-  db: Database,
+  db: SqlExecutor,
   summary: {
     memory_session_id: string;
     project: string;
@@ -107,7 +107,7 @@ export function importSessionSummary(
 }
 
 export function importObservation(
-  db: Database,
+  db: SqlExecutor,
   obs: {
     memory_session_id: string;
     project: string;
@@ -176,7 +176,7 @@ export function importObservation(
 }
 
 export function importUserPrompt(
-  db: Database,
+  db: SqlExecutor,
   prompt: {
     content_session_id: string;
     prompt_number: number;

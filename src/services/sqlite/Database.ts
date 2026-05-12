@@ -1,9 +1,21 @@
+/**
+ * Legacy SQLite Database Manager — Backward Compatibility Layer
+ *
+ * This module now delegates to the database-agnostic Data Access Layer (DAL)
+ * defined in `src/services/database/`. When `CLAUDE_MEM_DB_TYPE` is 'sqlite'
+ * (the default), behavior is identical to before.
+ *
+ * For other databases (mysql, postgresql), the adapter handles all driver logic.
+ *
+ * @deprecated Prefer importing from `src/services/database/index.js` for new code.
+ *             This file is kept for backward compatibility with 35+ consumers.
+ */
+
 import { Database } from 'bun:sqlite';
 import { DATA_DIR, DB_PATH, ensureDir } from '../../shared/paths.js';
 import { logger } from '../../utils/logger.js';
-import { MigrationRunner } from './migrations/runner.js';
 
-const SQLITE_MMAP_SIZE_BYTES = 256 * 1024 * 1024; 
+const SQLITE_MMAP_SIZE_BYTES = 256 * 1024 * 1024;
 const SQLITE_CACHE_SIZE_PAGES = 10_000;
 
 export interface Migration {
@@ -12,7 +24,10 @@ export interface Migration {
   down?: (db: Database) => void;
 }
 
+/** Cached native Database reference for backward compat */
 let dbInstance: Database | null = null;
+
+// ─── ClaudeMemDatabase: Standalone DB class (used by some entry points) ──
 
 export class ClaudeMemDatabase {
   public db: Database;
@@ -31,14 +46,28 @@ export class ClaudeMemDatabase {
     this.db.run(`PRAGMA mmap_size = ${SQLITE_MMAP_SIZE_BYTES}`);
     this.db.run(`PRAGMA cache_size = ${SQLITE_CACHE_SIZE_PAGES}`);
 
-    const migrationRunner = new MigrationRunner(this.db);
-    migrationRunner.runAllMigrations();
+    // Run migrations via legacy runner or new DAL
+    try {
+      const { MigrationRunner } = await import('./migrations/runner.js');
+      const migrationRunner = new MigrationRunner(this.db);
+      migrationRunner.runAllMigrations();
+    } catch {
+      logger.warn('DB', 'Legacy migration runner unavailable; ensure schema is initialized via DAL.');
+    }
+
+    // Cache for getDatabase() backward compat
+    dbInstance = this.db;
   }
 
   close(): void {
     this.db.close();
+    if (dbInstance === this.db) dbInstance = null;
   }
 }
+
+// ─── DatabaseManager: Singleton manager (now delegates to DAL when possible) ──
+
+let _dalInitialized = false;
 
 export class DatabaseManager {
   private static instance: DatabaseManager;
@@ -57,11 +86,51 @@ export class DatabaseManager {
     this.migrations.sort((a, b) => a.version - b.version);
   }
 
+  /**
+   * Initialize the database.
+   *
+   * If CLAUDE_MEM_DB_TYPE != 'sqlite', this will initialize the DAL and
+   * return a wrapped connection. Otherwise, behaves as before.
+   */
   async initialize(): Promise<Database> {
     if (this.db) {
       return this.db;
     }
 
+    const dbType = process.env.CLAUDE_MEM_DB_TYPE || 'sqlite';
+
+    // ── Use new DAL for non-SQLite backends ────────────────────────
+    if (dbType !== 'sqlite' && !_dalInitialized) {
+      try {
+        const { initDatabase } = await import('../database/index.js');
+        await initDatabase();
+        _dalInitialized = true;
+
+        // Get native connection from adapter for backward compat
+        const dalManager = (await import('../database/DatabaseManager.js')).DatabaseManager;
+        const native = dalManager.getNativeConnection();
+        if (native instanceof Database) {
+          this.db = native;
+          dbInstance = native;
+          return native;
+        }
+
+        throw new Error(
+          `Cannot return native Database object for ${dbType} backend. ` +
+          `Migrate to DAL API: import { DatabaseManager } from '../services/database/index.js'`
+        );
+      } catch (e) {
+        if ((e as Error).message.includes('migrate to')) throw e;
+        logger.warn(
+          'DB',
+          `DAL initialization failed for ${dbType}, falling back to SQLite`,
+          {},
+          e instanceof Error ? e : undefined
+        );
+      }
+    }
+
+    // ── Legacy SQLite path (default behavior unchanged) ─────────────
     ensureDir(DATA_DIR);
 
     this.db = new Database(DB_PATH, { create: true, readwrite: true });
@@ -162,6 +231,32 @@ export async function initializeDatabase(): Promise<Database> {
 }
 
 export { Database };
+
+// ─── DAL Bridge: Expose SqlExecutor for migrated consumers ──────────
+
+/**
+ * Get the DB-agnostic SqlExecutor from the DAL.
+ * Use this when migrating code away from native `Database` type.
+ *
+ * @example
+ * ```ts
+ * import { getSqlExecutor } from '../services/sqlite/Database.js';
+ * const db = getSqlExecutor();
+ * const rows = db.prepare('SELECT * FROM sessions').all();
+ * ```
+ */
+export function getSqlExecutor(): import('../database/SqlExecutor.js').SqlExecutor {
+  // Dynamic import — safe because DAL is always initialized at startup
+  // before any consumer calls this function. The module cache returns immediately.
+  const dalModule = require('../database/SqlExecutor.js') as {
+    getSqlExecutor: () => import('../database/SqlExecutor.js').SqlExecutor;
+    SqlExecutor: typeof import('../database/SqlExecutor.js').SqlExecutor;
+  };
+  return dalModule.getSqlExecutor();
+}
+
+// Re-export types for convenience
+export type { SqlExecutor } from '../database/SqlExecutor.js';
 
 export { MigrationRunner } from './migrations/runner.js';
 

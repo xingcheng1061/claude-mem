@@ -1,5 +1,5 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../services/database/SqlExecutor.js';
 import path from 'path';
 import {
   existsSync,
@@ -131,7 +131,7 @@ function hasDirectChildFile(obs: ObservationRow, folderPath: string): boolean {
   return checkFiles(obs.files_modified) || checkFiles(obs.files_read);
 }
 
-function findObservationsByFolder(db: Database, relativeFolderPath: string, project: string, limit: number): ObservationRow[] {
+function findObservationsByFolder(db: SqlExecutor, relativeFolderPath: string, project: string, limit: number): ObservationRow[] {
   const queryLimit = limit * 3;
 
   const sql = `
@@ -275,7 +275,7 @@ function writeClaudeMdToFolder(folderPath: string, newContent: string): void {
 }
 
 function regenerateFolder(
-  db: Database,
+  db: SqlExecutor,
   absoluteFolder: string,
   relativeFolder: string,
   project: string,
@@ -314,14 +314,15 @@ function regenerateFolder(
   }
 }
 
-function processAllFoldersForGeneration(
+async function processAllFoldersForGeneration(
   trackedFolders: Set<string>,
   workingDir: string,
   project: string,
   dryRun: boolean,
   observationLimit: number
-): number {
-  const db = new Database(DB_PATH, { readonly: true, create: false });
+): Promise<number> {
+  const { getSqlExecutor: _getExec } = await import('../services/database/SqlExecutor.js');
+  const db = _getExec();
 
   let successCount = 0;
   let skipCount = 0;
@@ -397,7 +398,7 @@ export async function generateClaudeMd(dryRun: boolean): Promise<number> {
   }
 
   try {
-    return processAllFoldersForGeneration(trackedFolders, workingDir, project, dryRun, observationLimit);
+    return await processAllFoldersForGeneration(trackedFolders, workingDir, project, dryRun, observationLimit);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('CLAUDE_MD', 'Fatal error during CLAUDE.md generation', {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { CreateProjectSchema, ProjectSchema, type CreateProject, type Project } from '../../core/schemas/project.js';
 import { ensureServerStorageSchema } from './schema.js';
 import { parseJsonObject, stringifyJson } from './serde.js';
@@ -29,7 +29,7 @@ function mapProjectRow(row: ProjectRow): Project {
 }
 
 export class ProjectsRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

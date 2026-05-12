@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { CreateServerSessionSchema, ServerSessionSchema, type CreateServerSession, type ServerSession, type ServerSessionStatus } from '../../core/schemas/session.js';
 import { ensureServerStorageSchema } from './schema.js';
 import { parseJsonObject, stringifyJson } from './serde.js';
@@ -37,7 +37,7 @@ function mapServerSessionRow(row: ServerSessionRow): ServerSession {
 }
 
 export class ServerSessionsRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

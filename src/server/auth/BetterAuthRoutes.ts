@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Application } from 'express';
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import type { RouteHandler } from '../../services/server/Server.js';
 
 type NodeHandler = ReturnType<typeof import('better-auth/node').toNodeHandler>;
 
-const cachedHandlers = new WeakMap<Database, NodeHandler>();
+const cachedHandlers = new WeakMap<SqlExecutor, NodeHandler>();
 
-async function getBetterAuthHandler(database: Database): Promise<NodeHandler> {
+async function getBetterAuthHandler(database: SqlExecutor): Promise<NodeHandler> {
   const cachedHandler = cachedHandlers.get(database);
   if (cachedHandler) {
     return cachedHandler;

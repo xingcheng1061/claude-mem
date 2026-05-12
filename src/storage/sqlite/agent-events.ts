@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { AgentEventSchema, CreateAgentEventSchema, type AgentEvent, type AgentEventSourceType, type CreateAgentEvent } from '../../core/schemas/agent-event.js';
 import { ensureServerStorageSchema } from './schema.js';
 
@@ -34,7 +34,7 @@ function mapAgentEventRow(row: AgentEventRow): AgentEvent {
 }
 
 export class AgentEventsRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

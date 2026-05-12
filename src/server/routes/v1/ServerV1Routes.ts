@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Application, Request, Response } from 'express';
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { z, type ZodTypeAny } from 'zod';
 import type { RouteHandler } from '../../../services/server/Server.js';
 import { CreateAgentEventSchema } from '../../../core/schemas/agent-event.js';
@@ -23,7 +23,7 @@ const BUILT_IN_VERSION = typeof __DEFAULT_PACKAGE_VERSION__ !== 'undefined'
   : 'development';
 
 export interface ServerV1RoutesOptions {
-  getDatabase: () => Database;
+  getDatabase: () => SqlExecutor;
   authMode?: string;
   runtime?: string;
   allowLocalDevBypass?: boolean;

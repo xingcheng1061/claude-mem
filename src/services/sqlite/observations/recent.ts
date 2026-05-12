@@ -1,10 +1,10 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { RecentObservationRow, AllRecentObservationRow } from './types.js';
 
 export function getRecentObservations(
-  db: Database,
+  db: SqlExecutor,
   project: string,
   limit: number = 20
 ): RecentObservationRow[] {
@@ -20,7 +20,7 @@ export function getRecentObservations(
 }
 
 export function getAllRecentObservations(
-  db: Database,
+  db: SqlExecutor,
   limit: number = 100
 ): AllRecentObservationRow[] {
   const stmt = db.prepare(`
@@ -33,7 +33,7 @@ export function getAllRecentObservations(
   return stmt.all(limit) as AllRecentObservationRow[];
 }
 
-export function getFirstObservationCreatedAt(db: Database): string | null {
+export function getFirstObservationCreatedAt(db: SqlExecutor): string | null {
   const stmt = db.prepare(`
     SELECT created_at
     FROM observations

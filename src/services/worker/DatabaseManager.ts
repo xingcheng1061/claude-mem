@@ -1,5 +1,6 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
+import { getSqlExecutor, initDatabase } from '../database/index.js';
 import { SessionStore } from '../sqlite/SessionStore.js';
 import { SessionSearch } from '../sqlite/SessionSearch.js';
 import { ChromaSync } from '../sync/ChromaSync.js';
@@ -9,16 +10,19 @@ import { logger } from '../../utils/logger.js';
 import type { DBSession } from '../worker-types.js';
 
 export class DatabaseManager {
-  private db: Database | null = null;
+  private sqlExec: SqlExecutor | null = null;
   private sessionStore: SessionStore | null = null;
   private sessionSearch: SessionSearch | null = null;
   private chromaSync: ChromaSync | null = null;
 
   async initialize(): Promise<void> {
-    this.db = new Database(DB_PATH);
-    
-    this.sessionStore = new SessionStore(this.db);
-    this.sessionSearch = new SessionSearch(this.db);
+    // Initialize DAL (creates adapter, runs migrations, binds SqlExecutor)
+    await initDatabase();
+    this.sqlExec = getSqlExecutor();
+
+    // SessionStore and SessionSearch now receive SqlExecutor (DB-agnostic)
+    this.sessionStore = new SessionStore(this.sqlExec);
+    this.sessionSearch = new SessionSearch(this.sqlExec);
 
     const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
     const chromaEnabled = settings.CLAUDE_MEM_CHROMA_ENABLED !== 'false';
@@ -28,7 +32,7 @@ export class DatabaseManager {
       logger.info('DB', 'Chroma disabled via CLAUDE_MEM_CHROMA_ENABLED=false, using SQLite-only search');
     }
 
-    logger.info('DB', 'Database initialized (shared connection)');
+    logger.info('DB', 'Database initialized via Data Access Layer (shared connection)');
   }
 
   async close(): Promise<void> {
@@ -39,11 +43,12 @@ export class DatabaseManager {
 
     this.sessionStore = null;
     this.sessionSearch = null;
+    this.sqlExec = null;
 
-    if (this.db) {
-      this.db.close();
-      this.db = null;
-    }
+    // Close DAL adapter
+    const { DatabaseManager: DalManager } = await import('../database/DatabaseManager.js');
+    await DalManager.close();
+
     logger.info('DB', 'Database closed');
   }
 
@@ -65,11 +70,12 @@ export class DatabaseManager {
     return this.chromaSync;
   }
 
-  getConnection(): Database {
-    if (!this.db) {
+  /** Get the SqlExecutor (DB-agnostic query interface) */
+  getConnection(): SqlExecutor {
+    if (!this.sqlExec) {
       throw new Error('Database not initialized');
     }
-    return this.db;
+    return this.sqlExec;
   }
 
   getSessionById(sessionDbId: number): {

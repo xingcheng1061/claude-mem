@@ -1,10 +1,10 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { ObservationRecord } from '../../../types/database.js';
 import type { GetObservationsByIdsOptions, ObservationSessionRow } from './types.js';
 
-export function getObservationById(db: Database, id: number): ObservationRecord | null {
+export function getObservationById(db: SqlExecutor, id: number): ObservationRecord | null {
   const stmt = db.prepare(`
     SELECT *
     FROM observations
@@ -15,7 +15,7 @@ export function getObservationById(db: Database, id: number): ObservationRecord 
 }
 
 export function getObservationsByIds(
-  db: Database,
+  db: SqlExecutor,
   ids: number[],
   options: GetObservationsByIdsOptions = {}
 ): ObservationRecord[] {
@@ -81,7 +81,7 @@ export function getObservationsByIds(
 }
 
 export function getObservationsForSession(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string
 ): ObservationSessionRow[] {
   const stmt = db.prepare(`
@@ -95,7 +95,7 @@ export function getObservationsForSession(
 }
 
 export function getObservationsByFilePath(
-  db: Database,
+  db: SqlExecutor,
   filePath: string,
   options?: { projects?: string[]; limit?: number }
 ): ObservationRecord[] {

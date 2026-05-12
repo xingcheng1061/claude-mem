@@ -1,5 +1,5 @@
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import type { ObservationRecord, SessionSummaryRecord, UserPromptRecord } from '../../../types/database.js';
 import { logger } from '../../../utils/logger.js';
 import { OBSERVER_SESSIONS_PROJECT } from '../../../shared/paths.js';
@@ -28,7 +28,7 @@ export interface TimelineResult {
 }
 
 export function getTimelineAroundTimestamp(
-  db: Database,
+  db: SqlExecutor,
   anchorEpoch: number,
   depthBefore: number = 10,
   depthAfter: number = 10,
@@ -38,7 +38,7 @@ export function getTimelineAroundTimestamp(
 }
 
 export function getTimelineAroundObservation(
-  db: Database,
+  db: SqlExecutor,
   anchorObservationId: number | null,
   anchorEpoch: number,
   depthBefore: number = 10,
@@ -165,7 +165,7 @@ export function getTimelineAroundObservation(
   };
 }
 
-export function getAllProjects(db: Database): string[] {
+export function getAllProjects(db: SqlExecutor): string[] {
   const stmt = db.prepare(`
     SELECT DISTINCT project
     FROM sdk_sessions

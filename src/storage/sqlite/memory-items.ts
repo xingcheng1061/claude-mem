@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import {
   CreateMemoryItemSchema,
   CreateMemorySourceSchema,
@@ -95,7 +95,7 @@ function buildFtsQuery(query: string): string {
 }
 
 export class MemoryItemsRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

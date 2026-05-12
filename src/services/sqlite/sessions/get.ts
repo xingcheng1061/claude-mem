@@ -1,5 +1,5 @@
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type {
   SessionBasic,
@@ -8,7 +8,7 @@ import type {
   SessionSummaryDetail,
 } from './types.js';
 
-export function getSessionById(db: Database, id: number): SessionBasic | null {
+export function getSessionById(db: SqlExecutor, id: number): SessionBasic | null {
   const stmt = db.prepare(`
     SELECT id, content_session_id, memory_session_id, project,
            COALESCE(platform_source, 'claude') as platform_source,
@@ -22,7 +22,7 @@ export function getSessionById(db: Database, id: number): SessionBasic | null {
 }
 
 export function getSdkSessionsBySessionIds(
-  db: Database,
+  db: SqlExecutor,
   memorySessionIds: string[]
 ): SessionFull[] {
   if (memorySessionIds.length === 0) return [];
@@ -42,7 +42,7 @@ export function getSdkSessionsBySessionIds(
 }
 
 export function getRecentSessionsWithStatus(
-  db: Database,
+  db: SqlExecutor,
   project: string,
   limit: number = 3
 ): SessionWithStatus[] {
@@ -69,7 +69,7 @@ export function getRecentSessionsWithStatus(
 }
 
 export function getSessionSummaryById(
-  db: Database,
+  db: SqlExecutor,
   id: number
 ): SessionSummaryDetail | null {
   const stmt = db.prepare(`

@@ -1,9 +1,10 @@
-import type { Database } from 'bun:sqlite';
+
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { RecentSummary, SummaryWithSessionInfo, FullSummary } from './types.js';
 
 export function getRecentSummaries(
-  db: Database,
+  db: SqlExecutor,
   project: string,
   limit: number = 10
 ): RecentSummary[] {
@@ -21,7 +22,7 @@ export function getRecentSummaries(
 }
 
 export function getRecentSummariesWithSessionInfo(
-  db: Database,
+  db: SqlExecutor,
   project: string,
   limit: number = 3
 ): SummaryWithSessionInfo[] {
@@ -39,7 +40,7 @@ export function getRecentSummariesWithSessionInfo(
 }
 
 export function getAllRecentSummaries(
-  db: Database,
+  db: SqlExecutor,
   limit: number = 50
 ): FullSummary[] {
   const stmt = db.prepare(`

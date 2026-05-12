@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { CreateTeamMemberSchema, CreateTeamSchema, TeamMemberSchema, TeamSchema, type CreateTeam, type CreateTeamMember, type Team, type TeamMember, type TeamRole } from '../../core/schemas/team.js';
 import { ensureServerStorageSchema } from './schema.js';
 import { parseJsonObject, stringifyJson } from './serde.js';
@@ -47,7 +47,7 @@ function mapTeamMemberRow(row: TeamMemberRow): TeamMember {
 }
 
 export class TeamsRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

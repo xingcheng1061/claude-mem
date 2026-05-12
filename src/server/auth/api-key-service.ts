@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { createHash, randomBytes } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { AuthRepository, ensureServerStorageSchema } from '../../storage/sqlite/index.js';
 import type { ApiKey } from '../../core/schemas/auth.js';
 
@@ -34,7 +34,7 @@ export function createRawServerApiKey(): string {
   return `cmem_${randomBytes(32).toString('base64url')}`;
 }
 
-export function createServerApiKey(db: Database, input: CreateServerApiKeyInput): CreatedServerApiKey {
+export function createServerApiKey(db: SqlExecutor, input: CreateServerApiKeyInput): CreatedServerApiKey {
   ensureServerStorageSchema(db);
   const rawKey = createRawServerApiKey();
   const repo = new AuthRepository(db);
@@ -62,7 +62,7 @@ export function createServerApiKey(db: Database, input: CreateServerApiKeyInput)
 }
 
 export function verifyServerApiKey(
-  db: Database,
+  db: SqlExecutor,
   rawKey: string,
   requiredScopes: string[] = [],
 ): VerifiedServerApiKey | null {
@@ -88,12 +88,12 @@ export function verifyServerApiKey(
   };
 }
 
-export function listServerApiKeys(db: Database): ApiKey[] {
+export function listServerApiKeys(db: SqlExecutor): ApiKey[] {
   ensureServerStorageSchema(db);
   return new AuthRepository(db).listApiKeys();
 }
 
-export function revokeServerApiKey(db: Database, id: string): ApiKey | null {
+export function revokeServerApiKey(db: SqlExecutor, id: string): ApiKey | null {
   ensureServerStorageSchema(db);
   const repo = new AuthRepository(db);
   const record = repo.revokeApiKey(id);

@@ -1,5 +1,5 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
 import { logger } from '../../utils/logger.js';
 import type { ObservationInput } from './observations/types.js';
 import type { SummaryInput } from './summaries/types.js';
@@ -14,7 +14,7 @@ export interface StoreObservationsResult {
 export type StoreAndMarkCompleteResult = StoreObservationsResult;
 
 export function storeObservationsAndMarkComplete(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string,
   project: string,
   observations: ObservationInput[],
@@ -121,7 +121,7 @@ export function storeObservationsAndMarkComplete(
 }
 
 export function storeObservations(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string,
   project: string,
   observations: ObservationInput[],

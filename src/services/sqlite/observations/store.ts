@@ -1,6 +1,6 @@
 
 import { createHash } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import { getProjectContext } from '../../../utils/project-name.js';
 import type { ObservationInput, StoreObservationResult } from './types.js';
@@ -17,7 +17,7 @@ export function computeObservationContentHash(
 }
 
 export function storeObservation(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string,
   project: string,
   observation: ObservationInput,

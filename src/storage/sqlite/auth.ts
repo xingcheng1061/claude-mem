@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { randomUUID } from 'crypto';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import {
   ApiKeySchema,
   AuditLogSchema,
@@ -80,7 +80,7 @@ function mapAuditLogRow(row: AuditLogRow): AuditLog {
 }
 
 export class AuthRepository {
-  constructor(private db: Database) {
+  constructor(private db: SqlExecutor) {
     ensureServerStorageSchema(this.db);
   }
 

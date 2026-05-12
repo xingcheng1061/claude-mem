@@ -2,7 +2,8 @@
 import path from 'path';
 import { existsSync } from 'fs';
 import { spawn } from 'child_process';
-import { Database } from 'bun:sqlite';
+// Note: Database type no longer directly imported; use SqlExecutor from DAL instead
+import type { SqlExecutor } from './database/SqlExecutor.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { getWorkerPort, getWorkerHost } from '../shared/worker-utils.js';
@@ -869,9 +870,14 @@ function parseServerApiKeyOptions(args: string[]): Record<string, string> {
   return options;
 }
 
-function openServerCommandDatabase(): Database {
+function openServerCommandDatabase(): SqlExecutor {
+  const { getSqlExecutor: _get } = require('../services/database/SqlExecutor.js');
   ensureDir(DATA_DIR);
-  return new Database(DB_PATH, { create: true, readwrite: true });
+  // Initialize DAL if not already done (CLI entry point may skip normal startup)
+  try { _get(); } catch { /* will be initialized below */ }
+  const { initDatabase: _init } = require('../services/database/index.js');
+  _init();
+  return _get();
 }
 
 function runServerApiKeyCli(args: string[]): never {

@@ -75,6 +75,18 @@ export interface SettingsDefaults {
   CLAUDE_MEM_SERVER_BETA_URL: string;
   CLAUDE_MEM_SERVER_BETA_API_KEY: string;
   CLAUDE_MEM_SERVER_BETA_PROJECT_ID: string;
+  // ── Database Layer Configuration (DAL) ──────────────────────────
+  CLAUDE_MEM_DB_TYPE: string;
+  CLAUDE_MEM_DB_HOST: string;
+  CLAUDE_MEM_DB_PORT: string;
+  CLAUDE_MEM_DB_USER: string;
+  CLAUDE_MEM_DB_PASSWORD: string;
+  CLAUDE_MEM_DB_NAME: string;
+  CLAUDE_MEM_DB_POOL_SIZE: string;
+  CLAUDE_MEM_DB_DEBUG: string;
+  CLAUDE_MEM_SQLITE_PATH: string;
+  CLAUDE_MEM_MYSQL_URL: string;
+  CLAUDE_MEM_POSTGRES_URL: string;
 }
 
 export class SettingsDefaultsManager {
@@ -150,6 +162,18 @@ export class SettingsDefaultsManager {
     CLAUDE_MEM_SERVER_BETA_URL: `http://127.0.0.1:${process.env.CLAUDE_MEM_SERVER_PORT ?? String(37877 + ((process.getuid?.() ?? 77) % 100))}`,  // Default server-beta runtime URL — UID-derived for multi-account isolation
     CLAUDE_MEM_SERVER_BETA_API_KEY: '',                     // Local hook API key, populated by installer when runtime=server-beta
     CLAUDE_MEM_SERVER_BETA_PROJECT_ID: '',                  // Default Postgres project_id used by hooks when runtime=server-beta
+    // ── Database Layer Configuration (DAL) ──────────────────────
+    CLAUDE_MEM_DB_TYPE: 'sqlite',                            // Database backend: sqlite | mysql | postgresql
+    CLAUDE_MEM_DB_HOST: '127.0.0.1',                         // DB host (for mysql/postgresql)
+    CLAUDE_MEM_DB_PORT: '',                                   // DB port (empty = use dialect default: 3306/5432)
+    CLAUDE_MEM_DB_USER: '',                                   // DB username
+    CLAUDE_MEM_DB_PASSWORD: '',                               // DB password
+    CLAUDE_MEM_DB_NAME: 'claude_mem',                        // Database name (for mysql/postgresql)
+    CLAUDE_MEM_DB_POOL_SIZE: '10',                           // Connection pool size (for mysql/postgresql)
+    CLAUDE_MEM_DB_DEBUG: 'false',                             // Enable SQL debug logging
+    CLAUDE_MEM_SQLITE_PATH: '',                               // Custom SQLite file path (empty = use default ~/.claude-mem/claude-mem.db)
+    CLAUDE_MEM_MYSQL_URL: '',                                // MySQL connection URI (overrides host/port/user/password/name)
+    CLAUDE_MEM_POSTGRES_URL: '',                              // PostgreSQL connection URI (overrides host/port/user/password/name)
   };
 
   static getAllDefaults(): SettingsDefaults {

@@ -1,5 +1,5 @@
 
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { SessionFilesResult } from './types.js';
 
@@ -14,7 +14,7 @@ export function parseFileList(value: string | null | undefined): string[] {
 }
 
 export function getFilesForSession(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string
 ): SessionFilesResult {
   const stmt = db.prepare(`

@@ -1,11 +1,11 @@
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { UserPromptRecord, LatestPromptResult } from '../../../types/database.js';
 import type { RecentUserPromptResult, PromptWithProject, GetPromptsByIdsOptions } from './types.js';
 
 export function getUserPrompt(
-  db: Database,
+  db: SqlExecutor,
   contentSessionId: string,
   promptNumber: number
 ): string | null {
@@ -20,7 +20,7 @@ export function getUserPrompt(
   return result?.prompt_text ?? null;
 }
 
-export function getPromptNumberFromUserPrompts(db: Database, contentSessionId: string): number {
+export function getPromptNumberFromUserPrompts(db: SqlExecutor, contentSessionId: string): number {
   const result = db.prepare(`
     SELECT COUNT(*) as count FROM user_prompts WHERE content_session_id = ?
   `).get(contentSessionId) as { count: number };
@@ -28,7 +28,7 @@ export function getPromptNumberFromUserPrompts(db: Database, contentSessionId: s
 }
 
 export function getLatestUserPrompt(
-  db: Database,
+  db: SqlExecutor,
   contentSessionId: string
 ): LatestPromptResult | undefined {
   const stmt = db.prepare(`
@@ -47,7 +47,7 @@ export function getLatestUserPrompt(
 }
 
 export function getAllRecentUserPrompts(
-  db: Database,
+  db: SqlExecutor,
   limit: number = 100
 ): RecentUserPromptResult[] {
   const stmt = db.prepare(`
@@ -68,7 +68,7 @@ export function getAllRecentUserPrompts(
   return stmt.all(limit) as RecentUserPromptResult[];
 }
 
-export function getPromptById(db: Database, id: number): PromptWithProject | null {
+export function getPromptById(db: SqlExecutor, id: number): PromptWithProject | null {
   const stmt = db.prepare(`
     SELECT
       p.id,
@@ -87,7 +87,7 @@ export function getPromptById(db: Database, id: number): PromptWithProject | nul
   return (stmt.get(id) as PromptWithProject | undefined) || null;
 }
 
-export function getPromptsByIds(db: Database, ids: number[]): PromptWithProject[] {
+export function getPromptsByIds(db: SqlExecutor, ids: number[]): PromptWithProject[] {
   if (ids.length === 0) return [];
 
   const placeholders = ids.map(() => '?').join(',');
@@ -110,7 +110,7 @@ export function getPromptsByIds(db: Database, ids: number[]): PromptWithProject[
 }
 
 export function getUserPromptsByIds(
-  db: Database,
+  db: SqlExecutor,
   ids: number[],
   options: GetPromptsByIdsOptions = {}
 ): UserPromptRecord[] {

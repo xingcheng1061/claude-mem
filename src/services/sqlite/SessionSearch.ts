@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
 import { TableNameRow } from '../../types/database.js';
 import { DATA_DIR, DB_PATH, ensureDir } from '../../shared/paths.js';
 import { logger } from '../../utils/logger.js';
@@ -16,18 +16,16 @@ import {
 } from './types.js';
 
 export class SessionSearch {
-  private db: Database;
+  private db: SqlExecutor;
 
   private static readonly MISSING_SEARCH_INPUT_MESSAGE = 'Either query or filters required for search';
 
-  constructor(dbPathOrDb: string | Database = DB_PATH) {
-    if (dbPathOrDb instanceof Database) {
-      this.db = dbPathOrDb;
-    } else {
-      ensureDir(DATA_DIR);
-      this.db = new Database(dbPathOrDb);
-      this.db.run('PRAGMA journal_mode = WAL');
-    }
+  /**
+   * @param sqlExec A SqlExecutor instance (obtained via getSqlExecutor()).
+   *   Schema and FTS tables are managed by the DAL adapter.
+   */
+  constructor(sqlExec: SqlExecutor) {
+    this.db = sqlExec;
 
     this._fts5Available = this.isFts5Available();
 

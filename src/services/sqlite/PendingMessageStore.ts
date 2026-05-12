@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
 import type { PendingMessage } from '../worker-types.js';
 import { logger } from '../../utils/logger.js';
 
@@ -20,10 +20,10 @@ export interface PersistentPendingMessage {
 }
 
 export class PendingMessageStore {
-  private db: Database;
+  private db: SqlExecutor;
 
   constructor(
-    db: Database,
+    db: SqlExecutor,
     private onMutate?: () => void
   ) {
     this.db = db;

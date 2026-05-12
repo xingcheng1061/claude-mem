@@ -1,9 +1,9 @@
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 
 export function saveUserPrompt(
-  db: Database,
+  db: SqlExecutor,
   contentSessionId: string,
   promptNumber: number,
   promptText: string

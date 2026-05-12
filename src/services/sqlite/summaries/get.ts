@@ -1,10 +1,10 @@
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import { logger } from '../../../utils/logger.js';
 import type { SessionSummaryRecord } from '../../../types/database.js';
 import type { SessionSummary, GetByIdsOptions } from './types.js';
 
 export function getSummaryForSession(
-  db: Database,
+  db: SqlExecutor,
   memorySessionId: string
 ): SessionSummary | null {
   const stmt = db.prepare(`
@@ -22,7 +22,7 @@ export function getSummaryForSession(
 }
 
 export function getSummaryById(
-  db: Database,
+  db: SqlExecutor,
   id: number
 ): SessionSummaryRecord | null {
   const stmt = db.prepare(`
@@ -33,7 +33,7 @@ export function getSummaryById(
 }
 
 export function getSummariesByIds(
-  db: Database,
+  db: SqlExecutor,
   ids: number[],
   options: GetByIdsOptions = {}
 ): SessionSummaryRecord[] {

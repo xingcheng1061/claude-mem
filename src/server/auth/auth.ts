@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../../services/database/SqlExecutor.js';
 import { betterAuth } from 'better-auth';
 import { apiKey } from '@better-auth/api-key';
 import { organization } from 'better-auth/plugins';
 import { DATA_DIR, ensureDir } from '../../shared/paths.js';
 
-export function createAuth(database: Database) {
+export function createAuth(database: SqlExecutor) {
   ensureDir(DATA_DIR);
   return betterAuth({
     database,

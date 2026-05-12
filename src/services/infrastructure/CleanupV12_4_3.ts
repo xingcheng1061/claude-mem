@@ -1,9 +1,19 @@
 
 import path from 'path';
 import { existsSync, writeFileSync, mkdirSync, rmSync, statSync, copyFileSync, statfsSync } from 'fs';
-import { Database } from 'bun:sqlite';
+import type { SqlExecutor } from '../database/SqlExecutor.js';
 import { DATA_DIR, OBSERVER_SESSIONS_PROJECT } from '../../shared/paths.js';
 import { logger } from '../../utils/logger.js';
+
+// Lazy-loaded DAL executor — available when cleanup runs after startup
+let _cachedExec: SqlExecutor | null = null;
+function getCleanupDb(): SqlExecutor {
+  if (!_cachedExec) {
+    const dal = require('../database/SqlExecutor.js') as typeof import('../database/SqlExecutor.js');
+    _cachedExec = dal.getSqlExecutor();
+  }
+  return _cachedExec;
+}
 
 const MARKER_FILENAME = '.cleanup-v12.4.3-applied';
 const STUCK_PENDING_THRESHOLD = 10;
@@ -76,7 +86,7 @@ export function runOneTimeV12_4_3Cleanup(
 
 function scanCleanupCounts(dbPath: string): CleanupCounts {
   const counts = emptyCounts();
-  const db = new Database(dbPath, { readonly: true });
+  const db = getCleanupDb(); // Uses active DAL connection
   try {
     counts.observerSessions = (
       db.prepare(`SELECT COUNT(*) AS n FROM sdk_sessions WHERE project = ?`).get(OBSERVER_SESSIONS_PROJECT) as { n: number }
@@ -128,7 +138,7 @@ function executeCleanup(dbPath: string, effectiveDataDir: string, markerPath: st
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   backupPath = path.join(effectiveBackupsDir, `claude-mem-pre-12.4.3-${ts}.db`);
 
-  const backupDb = new Database(dbPath, { readonly: true });
+  const backupDb = getCleanupDb(); // Reuse DAL executor for backup reads
   let vacuumFailed = false;
   let vacuumError: Error | null = null;
   try {
@@ -157,7 +167,7 @@ function executeCleanup(dbPath: string, effectiveDataDir: string, markerPath: st
   }
 
   const counts = emptyCounts();
-  const db = new Database(dbPath);
+  const db = getCleanupDb();
   db.run('PRAGMA foreign_keys = ON');
 
   try {
@@ -193,7 +203,7 @@ function executeCleanup(dbPath: string, effectiveDataDir: string, markerPath: st
   logger.info('SYSTEM', `To restore: cp '${backupPath}' '${dbPath}'`);
 }
 
-function runObserverSessionsPurge(db: Database, counts: CleanupCounts): void {
+function runObserverSessionsPurge(db: SqlExecutor, counts: CleanupCounts): void {
   db.run('BEGIN IMMEDIATE');
   try {
     const sessionCount = (db.prepare(`SELECT COUNT(*) AS n FROM sdk_sessions WHERE project = ?`).get(OBSERVER_SESSIONS_PROJECT) as { n: number }).n;
@@ -217,7 +227,7 @@ function runObserverSessionsPurge(db: Database, counts: CleanupCounts): void {
   }
 }
 
-function runStuckPendingPurge(db: Database, counts: CleanupCounts): void {
+function runStuckPendingPurge(db: SqlExecutor, counts: CleanupCounts): void {
   db.run('BEGIN IMMEDIATE');
   try {
     const stuckCount = (db.prepare(
