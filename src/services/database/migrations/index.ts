@@ -320,36 +320,130 @@ export function registerAllMigrations(dbManager: {
   });
 
   // ════════════════════════════════════════════════════════════════
-  // v34 — Final cleanup: remove stale statuses from pending_messages
+  // v35 — Full-text search indexes for MySQL & PostgreSQL
+  //
+  // SQLite uses FTS5 virtual tables managed by SessionSearch.ensureFTSTables().
+  // This migration adds native FTS support for MySQL (FULLTEXT) and PG (GIN/tsvector).
   // ════════════════════════════════════════════════════════════════
   dbManager.registerMigration({
-    version: 34,
-    description: 'Clean up pending_messages stale statuses',
+    version: 35,
+    description: 'Create full-text search indexes (MySQL FULLTEXT / PostgreSQL GIN)',
     up: async (adapter) => {
-      // Reset stuck processing entries back to pending
-      await adapter.execute(
-        `UPDATE pending_messages SET status = 'pending' WHERE status = 'processing'`
-      );
-
-      // Drop legacy columns if they exist (idempotent)
-      try {
-        if (adapter.type === 'sqlite') {
-          // SQLite doesn't support DROP COLUMN easily in older versions
-          // But modern SQLite (>= 3.35.0) does support it
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS retry_count`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS failed_at_epoch`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS completed_at_epoch`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS worker_pid`);
-        } else {
-          // MySQL/PostgreSQL support ALTER TABLE ... DROP COLUMN natively
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS retry_count`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS failed_at_epoch`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS completed_at_epoch`);
-          await adapter.runRaw(`ALTER TABLE pending_messages DROP COLUMN IF EXISTS worker_pid`);
+      if (adapter.type === 'mysql') {
+        // ── MySQL: FULLTEXT indexes ────────────────────────────────
+        // Natural language mode; covers the same columns as SQLite FTS5.
+        try {
+          await adapter.runRaw(`
+            CREATE FULLTEXT INDEX IF NOT EXISTS fts_observations
+            ON ${adapter.escapeIdentifier('observations')}(
+              title, subtitle, narrative, text, facts, concepts
+            )
+          `);
+        } catch {
+          // InnoDB requires some text; may fail if table is empty — still create index
+          logger.warn('DB', 'Could not create FULLTEXT index on observations (may need data first)', {});
         }
-      } catch {
-        // Columns may not exist — ignore errors
+
+        try {
+          await adapter.runRaw(`
+            CREATE FULLTEXT INDEX IF NOT EXISTS fts_session_summaries
+            ON ${adapter.escapeIdentifier('session_summaries')}(
+              request, investigated, learned, completed, next_steps, notes
+            )
+          `);
+        } catch {
+          logger.warn('DB', 'Could not create FULLTEXT index on session_summaries', {});
+        }
       }
+
+      if (adapter.type === 'postgresql') {
+        // ── PostgreSQL: tsvector columns + GIN indexes + triggers ──
+        const obsTable = adapter.escapeIdentifier('observations');
+        const sumTable = adapter.escapeIdentifier('session_summaries');
+
+        // Add tsvector column to observations if missing
+        try {
+          await adapter.runRaw(`ALTER TABLE ${obsTable} ADD COLUMN IF NOT EXISTS search_vector tsvector`);
+        } catch { /* column may already exist */ }
+
+        // Populate existing rows
+        await adapter.runRaw(`
+          UPDATE ${obsTable} SET search_vector = to_tsvector('english',
+            COALESCE(title,'') || ' ' || COALESCE(subtitle,'') || ' ' ||
+            COALESCE(narrative,'') || ' ' || COALESCE(text,'') || ' ' ||
+            COALESCE(facts,'') || ' ' || COALESCE(concepts,'')
+          ) WHERE search_vector IS NULL
+        `);
+
+        // GIN index for fast lookups
+        await adapter.runRaw(`
+          CREATE INDEX IF NOT EXISTS idx_observations_search
+          ON ${obsTable} USING GIN(search_vector)
+        `);
+
+        // Auto-update trigger
+        await adapter.runRaw(`
+          CREATE OR REPLACE FUNCTION observations_search_vector_update() RETURNS trigger AS $$
+          BEGIN
+            NEW.search_vector := to_tsvector('english',
+              COALESCE(NEW.title,'') || ' ' || COALESCE(NEW.subtitle,'') || ' ' ||
+              COALESCE(NEW.narrative,'') || ' ' || COALESCE(NEW.text,'') || ' ' ||
+              COALESCE(NEW.facts,'') || ' ' || COALESCE(NEW.concepts,'')
+            );
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql
+        `);
+        await adapter.runRaw(`
+          DROP TRIGGER IF EXISTS observations_tsvector_update ON ${obsTable}
+        `);
+        await adapter.runRaw(`
+          CREATE TRIGGER observations_tsvector_update
+          BEFORE INSERT OR UPDATE ON ${obsTable}
+          FOR EACH ROW EXECUTE FUNCTION observations_search_vector_update()
+        `);
+
+        // Same for session_summaries
+        try {
+          await adapter.runRaw(`ALTER TABLE ${sumTable} ADD COLUMN IF NOT EXISTS search_vector tsvector`);
+        } catch { /* ignore */ }
+
+        await adapter.runRaw(`
+          UPDATE ${sumTable} SET search_vector = to_tsvector('english',
+            COALESCE(request,'') || ' ' || COALESCE(investigated,'') || ' ' ||
+            COALESCE(learned,'') || ' ' || COALESCE(completed,'') || ' ' ||
+            COALESCE(next_steps,'') || ' ' || COALESCE(notes,'')
+          ) WHERE search_vector IS NULL
+        `);
+
+        await adapter.runRaw(`
+          CREATE INDEX IF NOT EXISTS idx_session_summaries_search
+          ON ${sumTable} USING GIN(search_vector)
+        `);
+
+        await adapter.runRaw(`
+          CREATE OR REPLACE FUNCTION session_summaries_search_vector_update() RETURNS trigger AS $$
+          BEGIN
+            NEW.search_vector := to_tsvector('english',
+              COALESCE(NEW.request,'') || ' ' || COALESCE(NEW.investigated,'') || ' ' ||
+              COALESCE(NEW.learned,'') || ' ' || COALESCE(NEW.completed,'') || ' ' ||
+              COALESCE(NEW.next_steps,'') || ' ' || COALESCE(NEW.notes,'')
+            );
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql
+        `);
+        await adapter.runRaw(`
+          DROP TRIGGER IF EXISTS session_summaries_tsvector_update ON ${sumTable}
+        `);
+        await adapter.runRaw(`
+          CREATE TRIGGER session_summaries_tsvector_update
+          BEFORE INSERT OR UPDATE ON ${sumTable}
+          FOR EACH ROW EXECUTE FUNCTION session_summaries_search_vector_update()
+        `);
+      }
+
+      // SQLite: no-op here — FTS5 is managed by SessionSearch.ensureFTSTables()
     },
   });
 }

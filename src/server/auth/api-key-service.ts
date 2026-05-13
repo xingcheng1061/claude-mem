@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+w// SPDX-License-Identifier: Apache-2.0
 
 import { createHash, randomBytes } from 'crypto';
 import type { SqlExecutor } from '../../services/database/SqlExecutor.js';

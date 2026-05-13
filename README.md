@@ -114,6 +114,7 @@
   <a href="#how-it-works">How It Works</a> •
   <a href="#mcp-search-tools">Search Tools</a> •
   <a href="#documentation">Documentation</a> •
+  <a href="#database-backends">Database Backends</a> •
   <a href="#configuration">Configuration</a> •
   <a href="#troubleshooting">Troubleshooting</a> •
   <a href="#license">License</a>
@@ -206,9 +207,24 @@ The installer handles dependencies, plugin setup, AI provider configuration, wor
 - **[Hooks Reference](https://docs.claude-mem.ai/architecture/hooks)** - 7 hook scripts explained
 - **[Worker Service](https://docs.claude-mem.ai/architecture/worker-service)** - HTTP API & Bun management
 - **[Database](https://docs.claude-mem.ai/architecture/database)** - SQLite schema & FTS5 search
+- **[Database Backends (Local)](docs/database.md)** - SQLite / MySQL / PostgreSQL configuration guide
 - **[Search Architecture](https://docs.claude-mem.ai/architecture/search-architecture)** - Hybrid search with Chroma vector database
 
-### Configuration & Development
+### Database Backends
+
+Claude-Mem supports **3 database backends** via its Database Abstraction Layer (DAL). Switch databases with environment variables — no code changes needed.
+
+| Backend | Default | Setup |
+|---------|---------|-------|
+| **[SQLite](docs/database.md#1-sqlite-default)** | Zero config | Built into Bun, works out of the box |
+| **[MySQL](docs/database.md#2-mysql)** | `CLAUDE_MEM_DB_TYPE=mysql` | Requires `npm install mysql2` |
+| **[PostgreSQL](docs/database.md#3-postgresql)** | `CLAUDE_MEM_DB_TYPE=postgresql` | Requires `npm install pg` |
+
+> See [Database Configuration Guide](docs/database.md) for detailed setup instructions, environment variables, connection examples, migration system, and troubleshooting.
+
+---
+
+## Configuration & Development
 
 - **[Configuration](https://docs.claude-mem.ai/configuration)** - Environment variables & settings
 - **[Development](https://docs.claude-mem.ai/development)** - Building, testing, contributing
@@ -223,7 +239,7 @@ The installer handles dependencies, plugin setup, AI provider configuration, wor
 1. **5 Lifecycle Hooks** - SessionStart, UserPromptSubmit, PostToolUse, Stop, SessionEnd (6 hook scripts)
 2. **Smart Install** - Cached dependency checker (pre-hook script, not a lifecycle hook)
 3. **Worker Service** - HTTP API on port 37777 with web viewer UI and 10 search endpoints, managed by Bun
-4. **SQLite Database** - Stores sessions, observations, summaries
+4. **Database Layer** - Supports SQLite (default), MySQL, PostgreSQL via unified adapter abstraction
 5. **mem-search Skill** - Natural language queries with progressive disclosure
 6. **Chroma Vector Database** - Hybrid semantic + keyword search for intelligent context retrieval
 
@@ -284,7 +300,10 @@ See **[Beta Features Documentation](https://docs.claude-mem.ai/beta-features)** 
 - **Claude Code**: Latest version with plugin support
 - **Bun**: JavaScript runtime and process manager (auto-installed if missing)
 - **uv**: Python package manager for vector search (auto-installed if missing)
-- **SQLite 3**: For persistent storage (bundled)
+- **Database** (choose one):
+  - **SQLite 3**: Default, bundled with Bun (no extra deps)
+  - **MySQL**: Requires `npm install mysql2` (see [Database Guide](docs/database.md#2-mysql))
+  - **PostgreSQL**: Requires `npm install pg` (see [Database Guide](docs/database.md#3-postgresql))
 
 ---
 ### Windows Setup Notes
@@ -296,6 +315,34 @@ npm : The term 'npm' is not recognized as the name of a cmdlet
 ```
 
 Make sure Node.js and npm are installed and added to your PATH. Download the latest Node.js installer from https://nodejs.org and restart your terminal after installation.
+
+---
+
+## Database Backends
+
+Claude-Mem supports **3 database backends** via its Database Abstraction Layer (DAL). Switch databases with environment variables — no code changes needed.
+
+| Backend | Default | Setup |
+|---------|---------|-------|
+| **[SQLite](docs/database.md#1-sqlite-default)** | Zero config | Built into Bun, works out of the box |
+| **[MySQL](docs/database.md#2-mysql)** | `CLAUDE_MEM_DB_TYPE=mysql` | Requires `npm install mysql2` |
+| **[PostgreSQL](docs/database.md#3-postgresql)** | `CLAUDE_MEM_DB_TYPE=postgresql` | Requires `npm install pg` |
+
+> See [Database Configuration Guide](docs/database.md) for detailed setup instructions, environment variables, connection examples, migration system, and troubleshooting.
+
+---
+
+## Database Backends
+
+Claude-Mem supports **3 database backends** via its Database Abstraction Layer (DAL). Switch databases with environment variables — no code changes needed.
+
+| Backend | Default | Setup |
+|---------|---------|-------|
+| **[SQLite](docs/database.md#1-sqlite-default)** | Zero config | Built into Bun, works out of the box |
+| **[MySQL](docs/database.md#2-mysql)** | `CLAUDE_MEM_DB_TYPE=mysql` | Requires `npm install mysql2` |
+| **[PostgreSQL](docs/database.md#3-postgresql)** | `CLAUDE_MEM_DB_TYPE=postgresql` | Requires `npm install pg` |
+
+> See [Database Configuration Guide](docs/database.md) for detailed setup instructions, environment variables, connection examples, migration system, and troubleshooting.
 
 ---
 

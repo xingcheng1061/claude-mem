@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+e// SPDX-License-Identifier: Apache-2.0
 
 import type { SqlExecutor } from '../../../services/database/SqlExecutor.js';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
